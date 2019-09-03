@@ -131,11 +131,11 @@ takeFullPageScreenshot = (state, automationOptions) ->
   takeScrollingScreenshots(scrolls, win, state, automationOptions)
   .finally(resetScrollOverrides)
 
-applyPaddingToElementPositioning = (elPosition, automationOptions) ->
-  if not automationOptions.padding
+applyPaddingToElementPositioning = (elPosition, { padding, viewportHeight, viewportWidth }) ->
+  if not padding
     return elPosition
   
-  [ paddingTop, paddingRight, paddingBottom, paddingLeft ] = automationOptions.padding
+  [ paddingTop, paddingRight, paddingBottom, paddingLeft ] = padding
 
   {
     width: elPosition.width + paddingLeft + paddingRight
@@ -150,27 +150,51 @@ applyPaddingToElementPositioning = (elPosition, automationOptions) ->
     }
   }
 
-takeElementScreenshot = ($el, state, automationOptions) ->
+getElementWithPadding = ($el, doc, { padding }) ->
+  if not padding
+    return $el
+
+  [ paddingTop, paddingRight, paddingBottom, paddingLeft ] = padding
+
+  originalElPosition = $dom.getElementPositioning($el)
+
+  width = originalElPosition.width
+  height = originalElPosition.height
+  top = originalElPosition.fromWindow.top
+  left = originalElPosition.fromWindow.left
+
+  elWithPadding = doc.createElement('div')
+  elWithPadding.style.position = 'absolute'
+  elWithPadding.style.visibility = 'hidden'
+  elWithPadding.style.width = "#{width + paddingLeft + paddingRight}px"
+  elWithPadding.style.height = "#{height + paddingTop + paddingBottom}px"
+  elWithPadding.style.top = "#{top - paddingTop}px"
+  elWithPadding.style.left = "#{left - paddingLeft}px"
+
+  doc.body.appendChild(elWithPadding)
+
+  $(elWithPadding)
+
+takeElementScreenshot = ($originalEl, state, automationOptions) ->
   win = state("window")
   doc = state("document")
 
   resetScrollOverrides = scrollOverrides(win, doc)
 
-  elPosition = applyPaddingToElementPositioning(
-    $dom.getElementPositioning($el),
-    automationOptions
-  )
   viewportHeight = getViewportHeight(state)
   viewportWidth = getViewportWidth(state)
+  $el = getElementWithPadding(
+    $originalEl
+    doc
+    automationOptions
+  )
+  elPosition = $dom.getElementPositioning($el)
   numScreenshots = Math.ceil(elPosition.height / viewportHeight)
 
   scrolls = _.map _.times(numScreenshots), (index) ->
     y = elPosition.fromWindow.top + (viewportHeight * index)
     afterScroll = ->
-      elPosition = applyPaddingToElementPositioning(
-        $dom.getElementPositioning($el),
-        automationOptions
-      )
+      elPosition = $dom.getElementPositioning($el)
       x = Math.min(viewportWidth, elPosition.fromViewport.left)
       width = Math.min(viewportWidth - x, elPosition.width)
 
@@ -203,7 +227,11 @@ takeElementScreenshot = ($el, state, automationOptions) ->
     { y, afterScroll }
 
   takeScrollingScreenshots(scrolls, win, state, automationOptions)
-  .finally(resetScrollOverrides)
+  .finally(() ->
+    resetScrollOverrides()
+    if $el isnt $originalEl
+      doc.body.removeChild($el[0])
+  )
 
 ## "app only" means we're hiding the runner UI
 isAppOnly = ({ capture }) ->

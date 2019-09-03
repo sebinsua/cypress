@@ -546,7 +546,7 @@ describe "src/cy/commands/screenshot", ->
 
         scrollTo = cy.spy(cy.state("window"), "scrollTo")
 
-        cy.get(".tall-element").screenshot({ padding: 10 })
+        cy.get(".tall-element").screenshot({ padding })
         .then ->
           viewportHeight = getViewportHeight()
           expect(scrollTo.getCall(0).args).to.eql([0, 140 - padding])
