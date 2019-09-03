@@ -82,6 +82,11 @@ scrollOverrides = (win, doc) ->
     win.scrollTo(originalX, originalY)
 
 takeScrollingScreenshots = (scrolls, win, state, automationOptions) ->
+  if scrolls.length is 0
+    return Promise.reject(
+      new Error("It was not possible to take a screenshot, since the number of scrolls calculated to do so was zero.")
+    )
+
   scrollAndTake = ({ y, clip, afterScroll }, index) ->
     win.scrollTo(0, y)
     if afterScroll

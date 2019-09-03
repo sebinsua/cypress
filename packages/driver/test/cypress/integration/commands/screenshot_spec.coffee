@@ -647,6 +647,23 @@ describe "src/cy/commands/screenshot", ->
         @assertErrorMessage("cy.screenshot() 'blackout' option must be an array of strings. You passed: true", done)
         cy.screenshot({ blackout: [true] })
 
+      it "throws if there is a 0px tall element height", (done) ->
+        @assertErrorMessage("It was not possible to take a screenshot, since the number of scrolls calculated to do so was zero.", done)
+        cy.visit("/fixtures/screenshots.html")
+        cy.get('.empty-element').screenshot()
+
+      it "throws if padding is not a number", (done) ->
+        @assertErrorMessage("cy.screenshot() 'padding' option must be either a number or an array of numbers with a length between 1 and 4. You passed: 50px", done)
+        cy.screenshot({ padding: '50px' })
+
+      it "throws if padding is not an array of numbers", (done) ->
+        @assertErrorMessage("cy.screenshot() 'padding' option must be either a number or an array of numbers with a length between 1 and 4. You passed: bad, bad, bad, bad", done)
+        cy.screenshot({ padding: ['bad', 'bad', 'bad', 'bad'] })
+
+      it "throws if padding is not an array with a length between 1 and 4", (done) ->
+        @assertErrorMessage("cy.screenshot() 'padding' option must be either a number or an array of numbers with a length between 1 and 4. You passed: 20, 10, 20, 10, 50", done)
+        cy.screenshot({ padding: [20, 10, 20, 10, 50] })
+
       it "throws if clip is not an object", (done) ->
         @assertErrorMessage("cy.screenshot() 'clip' option must be an object of with the keys { width, height, x, y } and number values. You passed: true", done)
         cy.screenshot({ clip: true })
